@@ -1,5 +1,4 @@
-# echonest-hipsterness-plot
-Call the EchoNest API via R package "httr", and generate a plot with ggplot2 of hotttnesss vs. discovery
+# README: echonest-hipsterness-plot
 
 Link to R Script: [HipsternessPlot.R](HipsternessPlot.R)
 ### Usage in R
