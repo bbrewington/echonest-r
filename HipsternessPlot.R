@@ -1,7 +1,9 @@
 ## HipsternessPlot.R: Takes an input list of artists, calls the EchoNest API via package "httr", and
 ## creates a labeled scatterplot of the artists: hotttnesss (buzz value) vs. discovery (unexpected popularity value)
 
-echonest_api_key <- "YOUR_ECHO_API_KEY" # Register your own API at developer.echonest.com, and replace this text
+# Register your own API at developer.echonest.com, and replace this text
+echonest_api_key <- "YOUR_ECHO_API_KEY" 
+# Sample artist list
 artists <- c("cake", "darwin+deez","weezer","pretty+lights","radiohead","yo+yo+ma","big+data","tycho","skrillex","sufjan+stevens","foo+fighters","death+cab+for+cutie","the+decemberists","justice","haim","green+day","the+glitch+mob","imogen+heap","the+strokes","crooked+still","spoon")
 
 plot_hipsterness <- function(echonest_api_key,artists,your.name){
