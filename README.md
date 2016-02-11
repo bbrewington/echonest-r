@@ -18,7 +18,7 @@ artists <- c("cake", "darwin+deez","weezer","pretty+lights","radiohead","yo+yo+m
 ```
 Call the plot_hipsterness function, with the above character vector as an argument
 ```R
-plot_hipsterness("EchoNest API Key", artists, "Brent")
+plot_hipsterness("EchoNest API Key", artists, listeners_name = "Brent")
 ```
 
 ### Results
