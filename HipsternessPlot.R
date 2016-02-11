@@ -6,13 +6,13 @@ echonest_api_key <- "YOUR_ECHO_API_KEY"
 # Sample artist list
 artists <- c("cake", "darwin+deez","weezer","pretty+lights","radiohead","yo+yo+ma","big+data","tycho","skrillex","sufjan+stevens","foo+fighters","death+cab+for+cutie","the+decemberists","justice","haim","green+day","the+glitch+mob","imogen+heap","the+strokes","crooked+still","spoon")
 
-plot_hipsterness <- function(echonest_api_key,artists,your.name){
+plot_hipsterness <- function(echonest_api_key, artists, listeners_name){
      #Function parameter error checking
      if(echonest_api_key == "YOUR_ECHO_API_KEY"){
           stop("Make sure to register your own EchoNest API key at developer.echonest.com")
      }
-     if(!is.character(echonest_api_key) | !is.character(artists) | !is.character(your.name)){
-          stop("parameters echonest_api_key, artists, and your.name must be of class Character")
+     if(!is.character(echonest_api_key) | !is.character(artists) | !is.character(listeners_name)){
+          stop("parameters echonest_api_key, artists, and listeners_name must be of class Character")
      }
      
      library(httr)
@@ -21,11 +21,11 @@ plot_hipsterness <- function(echonest_api_key,artists,your.name){
      num_artists <- length(artists)
      
      # Set up URL's for EchoNest API call (using buckets "hotttnesss" and "discovery")
-     all.targets <- paste(rep("http://developer.echonest.com/api/v4/artist/profile?api_key=",times=num_artists),
-                          rep(echonest_api_key,times=num_artists),
-                          rep("&name=",times=num_artists),
+     all.targets <- paste(rep("http://developer.echonest.com/api/v4/artist/profile?api_key=", times=num_artists),
+                          rep(echonest_api_key, times=num_artists),
+                          rep("&name=", times=num_artists),
                           artists,
-                          rep("&bucket=hotttnesss&bucket=discovery",times=num_artists),
+                          rep("&bucket=hotttnesss&bucket=discovery", times=num_artists),
                           sep="")
      
      # Loop through each member of vector all.targets and call EchoNest API and
@@ -41,12 +41,12 @@ plot_hipsterness <- function(echonest_api_key,artists,your.name){
           df[i,3] <- content(r)$response$artist$discovery
      }
     
-     names(df) <- c("artist.name","hotttnesss","discovery")
+     names(df) <- c("artist.name", "hotttnesss", "discovery")
      
      # Plot results using geom_text, which displays the artist's name on a scatter plot
      
      ggplot(df, aes(discovery,hotttnesss,label=artist.name)) + 
           geom_text() + 
           xlim(0,1) + ylim(0,1) + 
-          ggtitle(paste("Hipsterness Plot of ",your.name,"'s Favorite Artists",sep=""))
+          ggtitle(paste("Hipsterness Plot of ", listeners_name, "'s Favorite Artists", sep=""))
 }
