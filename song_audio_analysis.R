@@ -1,51 +1,61 @@
-# Register your own API at developer.echonest.com, and replace this text
+# Register your own API at developer.echonest.com, and replace "YOUR_ECHO_API_KEY"
 echonest_api_key <- "YOUR_ECHO_API_KEY" 
 
-song_analysis <- function(echonest_api_key, artist_name, song_name){
+get_artist_song_list <- function(echonest_api_key, artist_name, start = 1){
      #Function parameter error checking
      if(echonest_api_key == "YOUR_ECHO_API_KEY"){
           stop("Make sure to register your own EchoNest API key at developer.echonest.com")
      }
-     if(!is.character(echonest_api_key) | !is.character(song_name) | !is.character(artist_name)){
-          stop("parameters echonest_api_key, song_name, & artist_name must be of class Character")
+     if(!is.character(echonest_api_key) | !is.character(artist_name)){
+          stop("parameters echonest_api_key & artist_name must be of class Character")
      }
      
-     library(httr)
-     library(ggplot2)
+     require(httr)
+     require(ggplot2)
      
-     # Replace spaces with %20 in artist_name and song_name
-     artist_name <- gsub(" ", "%20", artist_name)
-     song_name <- gsub(" ", "%20", song_name)
-     
+     # Create api call target url
      target <- paste0("http://developer.echonest.com/api/v4/song/search?api_key=",echonest_api_key,
-                          "&format=json",
-                          "&results=1",
-                          "&artist=",artist_name,
-                          "&title=",song_name,
-                          "&bucket=audio_summary")
+            "&artist=", artist_name, "&song_type=studio",
+            "&sort=song_hotttnesss-desc", "&format=json",
+            "&bucket=song_hotttnesss", "&bucket=song_type",
+            "&bucket=audio_summary", "&bucket=song_currency", 
+            "&start=", start, "&results=100")
      
-     print(target)
-     r <- GET(target)
-     warn_for_status(r)
-     r.content <- content(r)
-     r.content.data <- r.content$response$songs[[1]]
-     r.content.data.audio.summary <- r.content.data$audio_summary
-     data.frame(artist_id = r.content.data$artist_id, artist_name = r.content.data$artist_name,
-                id = r.content.data$id, title = r.content.data$title,
-                audio.summary.key = r.content.data.audio.summary$key,
-                audio.summary.analysis_url = r.content.data.audio.summary$analysis_url,
-                audio.summary.energy = r.content.data.audio.summary$energy,
-                audio.summary.liveness = r.content.data.audio.summary$liveness,
-                audio.summary.tempo = r.content.data.audio.summary$tempo,
-                audio.summary.speechiness = r.content.data.audio.summary$speechiness,
-                audio.summary.acousticness = r.content.data.audio.summary$acousticness,
-                audio.summary.instrumentalness = r.content.data.audio.summary$instrumentalness,
-                audio.summary.mode = r.content.data.audio.summary$mode,
-                audio.summary.time_signature = r.content.data.audio.summary$time_signature,
-                audio.summary.duration = r.content.data.audio.summary$duration,
-                audio.summary.loudness = r.content.data.audio.summary$loudness,
-                #audio.summary.audio_md5 = r.content.data.audio.summary$audio.md5,
-                #audit_md5 is left out b/c getting data from song id
-                audio.summary.valence = r.content.data.audio.summary$valence,
-                audio.summary.danceability = r.content.data.audio.summary$danceability)
+     # GET request to API (the URLencode function replaces spaces with %20, etc)
+     # add_headers() allows for extracting the rate limit variable, used later on
+     r.artist <- GET(URLencode(target), add_headers())
+     warn_for_status(r.artist)
+     r.artist.songs <- content(r.artist)$response$songs
+     
+     # return a list with 2 parts:
+     #    -data (data frame of song data returned on the API)
+     #    -rate.limit.remaining (a number representing how many API calls are left)
+     list(rate.limit.remaining = as.numeric(headers(r.artist)$`x-ratelimit-remaining`),
+          data = cbind(data.frame(song.id = sapply(r.artist.songs, function(x) x$id), 
+                            song.title = sapply(r.artist.songs, function(x) x$title),
+                            song.hotttnesss = sapply(r.artist.songs, function(x) x$song_hotttnesss),
+                            song.currency = sapply(r.artist.songs, function(x) x$song_currency),
+                            song.type.studio.flag = sapply(lapply(r.artist.songs, function(x) x$song_type), 
+                                                 function(x) if("studio" %in% x) 1 else 0),
+                            song.type.electric.flag = sapply(lapply(r.artist.songs, function(x) x$song_type), 
+                                                 function(x) if("electric" %in% x) 1 else 0),
+                            song.type.vocal.flag = sapply(lapply(r.artist.songs, function(x) x$song_type), 
+                                                 function(x) if("vocal" %in% x) 1 else 0)
+                            ), 
+                        rbind_all(lapply(content(r.artist)$response$songs, function(x) x$audio_summary))
+     ))
+}
+
+# Function to run a loop to repeatedly grab a certain artist's song data, and return a data frame
+# Pauses if API rate limit is close to expiring (i.e. if it equals 1) --> waits 15 seconds
+get_artist_data <- function(artist, num_songs_guess = 500){
+     df1 <- data.frame()
+     for(i in seq(1, num_songs_guess - 99, by = 100)){
+          song.list <- get_artist_song_list(echonest_api_key, artist, start = i)
+          if(song.list$rate.limit.remaining == 1){
+               Sys.sleep(30)
+          }
+          df1 <- rbind(df1, song.list$data)
+     }
+     df1
 }
