@@ -1,13 +1,7 @@
-# Register your own API at developer.echonest.com, and replace "YOUR_ECHO_API_KEY"
-echonest_api_key <- "YOUR_ECHO_API_KEY" 
-
-get_artist_song_list <- function(echonest_api_key, artist_name, start = 1){
+get_artist_song_list <- function(echonest_api_key, artist_name, start){
      #Function parameter error checking
-     if(echonest_api_key == "YOUR_ECHO_API_KEY"){
-          stop("Make sure to register your own EchoNest API key at developer.echonest.com")
-     }
-     if(!is.character(echonest_api_key) | !is.character(artist_name)){
-          stop("parameters echonest_api_key & artist_name must be of class Character")
+     if(!is.character(echonest_api_key) | !is.character(artist_name) | !is.numeric(start)){
+          stop("echonest_api_key & artist_name: Character, start: Number")
      }
      
      require(httr)
@@ -30,32 +24,59 @@ get_artist_song_list <- function(echonest_api_key, artist_name, start = 1){
      # return a list with 2 parts:
      #    -data (data frame of song data returned on the API)
      #    -rate.limit.remaining (a number representing how many API calls are left)
-     list(rate.limit.remaining = as.numeric(headers(r.artist)$`x-ratelimit-remaining`),
-          data = cbind(data.frame(song.id = sapply(r.artist.songs, function(x) x$id), 
-                            song.title = sapply(r.artist.songs, function(x) x$title),
-                            song.hotttnesss = sapply(r.artist.songs, function(x) x$song_hotttnesss),
-                            song.currency = sapply(r.artist.songs, function(x) x$song_currency),
-                            song.type.studio.flag = sapply(lapply(r.artist.songs, function(x) x$song_type), 
-                                                 function(x) if("studio" %in% x) 1 else 0),
-                            song.type.electric.flag = sapply(lapply(r.artist.songs, function(x) x$song_type), 
-                                                 function(x) if("electric" %in% x) 1 else 0),
-                            song.type.vocal.flag = sapply(lapply(r.artist.songs, function(x) x$song_type), 
-                                                 function(x) if("vocal" %in% x) 1 else 0)
-                            ), 
-                        rbind_all(lapply(content(r.artist)$response$songs, function(x) x$audio_summary))
+     print(paste0("start: ", start, " get_artist_song_list str(lapply...:"))
+     print(length(lapply(content(r.artist)$response$songs, function(x) x$audio_summary)) )
+     print(lapply(content(r.artist)$response$songs, function(x) x$audio_summary))
+     # create a list object to be used in the "data" object, consisting of bind_rows function applied to
+     # audio_summary to convert it to a data frame.  Have to clean up the NULL values in the audio_summary
+     # object for this to work
+     
+     
+      list(number.songs = length(r.artist.songs),
+           rate.limit.remaining = as.numeric(headers(r.artist)$`x-ratelimit-remaining`),
+           
+           data = cbind(data.frame(song.id = sapply(r.artist.songs, function(x) x$id), 
+                             song.title = sapply(r.artist.songs, function(x) x$title),
+                             song.hotttnesss = sapply(r.artist.songs, function(x) x$song_hotttnesss),
+                             song.currency = sapply(r.artist.songs, function(x) x$song_currency),
+                             song.type.studio.flag = sapply(lapply(r.artist.songs, function(x) x$song_type), 
+                                                  function(x) if("studio" %in% x) 1 else 0),
+                             song.type.electric.flag = sapply(lapply(r.artist.songs, function(x) x$song_type), 
+                                                  function(x) if("electric" %in% x) 1 else 0),
+                             song.type.vocal.flag = sapply(lapply(r.artist.songs, function(x) x$song_type), 
+                                                  function(x) if("vocal" %in% x) 1 else 0)
+                             ), 
+                        content(r.artist)$response$songs %>% lapply(function(x) x$audio_summary) %>% 
+                                       lapply(function(x){
+                                            x[sapply(x, is.null)] <- NA
+                                            return(x)
+                                       }) %>% bind_rows()
      ))
 }
 
 # Function to run a loop to repeatedly grab a certain artist's song data, and return a data frame
 # Pauses if API rate limit is close to expiring (i.e. if it equals 1) --> waits 15 seconds
-get_artist_data <- function(artist, num_songs_guess = 500){
+get_artist_data <- function(echonest_api_key, artist, num_songs_guess = 500){
      df1 <- data.frame()
+     initial.run <- TRUE
      for(i in seq(1, num_songs_guess - 99, by = 100)){
+          if(!initial.run){
+               if(song.list$number.songs < 100){
+                    break
+               }
+          }
+          
+          print(paste("i:",i))
+          
           song.list <- get_artist_song_list(echonest_api_key, artist, start = i)
+          print(song.list)
           if(song.list$rate.limit.remaining == 1){
                Sys.sleep(30)
           }
+          
           df1 <- rbind(df1, song.list$data)
+          
+          initial.run <- FALSE
      }
      df1
 }
