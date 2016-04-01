@@ -24,13 +24,10 @@ get_artist_song_list <- function(echonest_api_key, artist_name, start){
      # return a list with 2 parts:
      #    -data (data frame of song data returned on the API)
      #    -rate.limit.remaining (a number representing how many API calls are left)
-     print(paste0("start: ", start, " get_artist_song_list str(lapply...:"))
-     print(length(lapply(content(r.artist)$response$songs, function(x) x$audio_summary)) )
-     print(lapply(content(r.artist)$response$songs, function(x) x$audio_summary))
+     
      # create a list object to be used in the "data" object, consisting of bind_rows function applied to
      # audio_summary to convert it to a data frame.  Have to clean up the NULL values in the audio_summary
      # object for this to work
-     
      
       list(number.songs = length(r.artist.songs),
            rate.limit.remaining = as.numeric(headers(r.artist)$`x-ratelimit-remaining`),
@@ -50,13 +47,16 @@ get_artist_song_list <- function(echonest_api_key, artist_name, start){
                                        lapply(function(x){
                                             x[sapply(x, is.null)] <- NA
                                             return(x)
-                                       }) %>% bind_rows()
+                                       }) %>% bind_rows() %>% 
+                             mutate(mode = factor(mode, labels = c("major", "minor")))# %>%
+                            # mutate(key = factor(key, labels = c("C", "Db", "D", "Eb", "E", "F",
+                            #                                     "Gb", "G", "Ab", "A", "Bb", "B")))
      ))
 }
 
 # Function to run a loop to repeatedly grab a certain artist's song data, and return a data frame
 # Pauses if API rate limit is close to expiring (i.e. if it equals 1) --> waits 15 seconds
-get_artist_data <- function(echonest_api_key, artist, num_songs_guess = 500){
+get_artist_data <- function(echonest_api_key, artist, rem_song_duplicates = TRUE, num_songs_guess = 500){
      df1 <- data.frame()
      initial.run <- TRUE
      for(i in seq(1, num_songs_guess - 99, by = 100)){
@@ -65,8 +65,6 @@ get_artist_data <- function(echonest_api_key, artist, num_songs_guess = 500){
                     break
                }
           }
-          
-          print(paste("i:",i))
           
           song.list <- get_artist_song_list(echonest_api_key, artist, start = i)
           print(song.list)
@@ -78,5 +76,9 @@ get_artist_data <- function(echonest_api_key, artist, num_songs_guess = 500){
           
           initial.run <- FALSE
      }
-     df1
+     if(rem_song_duplicates){
+          df1 %>% distinct(song.title)
+     } else{
+          df1
+     }
 }
