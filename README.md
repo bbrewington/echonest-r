@@ -41,8 +41,7 @@ This function takes an artist & song as input, and returns a data frame of info 
   source("https://raw.githubusercontent.com/bbrewington/echonest-hipsterness-plot/master/HipsternessPlot.R")
   ```
 
-  The "artists" character vector below is shown for example.  The plot_hipsterness function takes a character vector of artists as an   argument (replace spaces with "+")
-  - [ ] Note to self: need to write in the "replace spaces with +" functionality using gsub
+  The "artists" character vector below is shown for example.  The plot_hipsterness function takes a character vector of artists as an   argument
 
   ```R
   artists <- c("cake", "darwin+deez","weezer","pretty+lights","radiohead","yo+yo+ma","big+data",
